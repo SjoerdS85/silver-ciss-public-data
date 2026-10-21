@@ -6,6 +6,7 @@ on:
     paths:
       - "baseline/**"
       - "config/ciss_contract_v1.json"
+      - "config/revision_policy_v1.json"
       - "src/acquire.py"
       - "src/validate.py"
       - "src/reconcile.py"
@@ -34,19 +35,24 @@ jobs:
       - name: Run full-history official ECB reconciliation audit
         run: python -m src.reconcile_run --output-dir artifacts/reconciliation
 
-      - name: Show reconciliation summary
+      - name: Show reconciliation summary and enforce governance
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           r = json.loads(Path("artifacts/reconciliation/reconciliation.json").read_text())
-          print(json.dumps({
+          summary = {
               "reconciliation_status": r["revision_summary"]["status"],
+              "revision_governance_status": r["revision_governance"]["status"],
+              "revision_fingerprint_match": r["revision_governance"]["fingerprint_match"],
               "revision_count": r["revision_summary"]["revision_count"],
               "classification_change_count": r["model_impact"]["classification_change_count"],
               "official_last_observation": r["validation"]["official_last_observation"],
               "publication_gate": r["publication_gate"],
-          }, indent=2))
+          }
+          print(json.dumps(summary, indent=2))
+          if r["publication_gate"] != "ELIGIBLE_FOR_NEXT_GATES":
+              raise SystemExit("revision governance gate is not eligible for next gates")
           PY
 
       - name: Upload reconciliation evidence
