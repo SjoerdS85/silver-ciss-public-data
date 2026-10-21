@@ -1,0 +1,144 @@
+name: CISS Publication
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "baseline/**"
+      - "config/**"
+      - "src/**"
+      - "tests/test_publication.py"
+      - ".github/workflows/ciss-publication.yml"
+  workflow_dispatch:
+    inputs:
+      confirm_release_immutability_enabled:
+        description: "Release immutability is enabled in repository Settings"
+        required: true
+        type: boolean
+        default: false
+      confirm_pages_actions_enabled:
+        description: "GitHub Pages source is configured for GitHub Actions"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+
+      - name: Build validated publication snapshot
+        run: python -m src.build_publication --output-dir artifacts/publication
+
+      - name: Display publication summary
+        run: cat artifacts/publication/publication_summary.json
+
+      - name: Upload publication candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ciss-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/publication
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.confirm_release_immutability_enabled == true &&
+      inputs.confirm_pages_actions_enabled == true
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Download publication candidate
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: ciss-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/publication
+
+      - name: Read release tag
+        id: meta
+        shell: bash
+        run: |
+          TAG="$(tr -d '\n\r' < artifacts/publication/tag.txt)"
+          test -n "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse duplicate release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists" >&2
+            exit 1
+          fi
+
+      - name: Create release snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          gh release create "$TAG"             artifacts/publication/ciss_snapshot.csv             artifacts/publication/ciss_snapshot_manifest.json             artifacts/publication/revision_report.csv             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "$TAG"             --notes-file artifacts/publication/release_notes.md
+
+      - name: Verify release is immutable
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > release.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          release = json.loads(Path("release.json").read_text())
+          if release.get("immutable") is not True:
+              raise SystemExit("release immutability verification failed")
+          print("immutable release verified", release["tag_name"])
+          PY
+
+  pages:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.confirm_release_immutability_enabled == true &&
+      inputs.confirm_pages_actions_enabled == true
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download publication candidate
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: ciss-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/publication
+
+      - name: Configure Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
+        with:
+          path: artifacts/publication/site
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
