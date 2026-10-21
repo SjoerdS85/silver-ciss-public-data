@@ -1,0 +1,1 @@
+{"schema_version":"1.0","calendar":"EUROSYSTEM_CISS_RELEASE_AUDIT","status":"UNVERIFIED_UNTIL_OFFICIAL_RELEASE_CALENDAR_AUDIT","timezone":"Europe/Frankfurt","weekend_days":[5,6],"known_exceptions":[],"notes":"Do not assume every Monday-Friday is an observation day. Unknown release timing fails closed."}
