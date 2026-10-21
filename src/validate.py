@@ -7,43 +7,62 @@ from decimal import Decimal
 
 from .common import ContractError, Observation, SERIES_KEY, first_present, parse_decimal, parse_iso_date
 
+
+def _required(row: dict[str, str], adapter: dict, name: str) -> str:
+    return first_present(row, adapter[name], required=True).strip()
+
+
 def parse_csv(raw: bytes, contract: dict, *, permit_unverified_adapter: bool = False) -> list[Observation]:
     adapter = contract["schema_adapter"]
     if adapter.get("status") != "VERIFIED" and not permit_unverified_adapter:
         raise ContractError("schema adapter not VERIFIED")
+
     text = raw.decode("utf-8-sig")
     reader = csv.DictReader(io.StringIO(text))
     if not reader.fieldnames:
         raise ContractError("CSV has no header")
+
     rows: list[Observation] = []
     seen = set()
+
     for row in reader:
-        day = parse_iso_date(first_present(row, adapter["date_columns"]).strip())
+        day = parse_iso_date(_required(row, adapter, "date_columns"))
         if day in seen:
             raise ContractError(f"duplicate date: {day}")
         seen.add(day)
         if day > datetime.now(timezone.utc).date():
             raise ContractError(f"future date: {day}")
-        value = parse_decimal(first_present(row, adapter["value_columns"]), int(contract["source_decimals"]))
-        status = (first_present(row, adapter["status_columns"], required=False) or "").strip()
+
+        # Preserve the exact official decimal representation. DECIMALS is
+        # validated as metadata separately and is not treated as a storage cap.
+        value = parse_decimal(_required(row, adapter, "value_columns"))
+
+        status = _required(row, adapter, "status_columns")
         if status not in set(adapter["allowed_status_values"]):
             raise ContractError(f"unknown status: {status}")
-        key = first_present(row, adapter["series_key_columns"], required=False)
-        if key and key.strip() != SERIES_KEY:
-            raise ContractError(f"series mismatch: {key}")
-        freq = first_present(row, adapter["frequency_columns"], required=False)
-        if freq and freq.strip() != contract["frequency"]:
-            raise ContractError("frequency mismatch")
-        area = first_present(row, adapter["reference_area_columns"], required=False)
-        if area and area.strip() != contract["reference_area"]:
-            raise ContractError("reference area mismatch")
-        unit = first_present(row, adapter["unit_columns"], required=False)
-        if unit and unit.strip() != contract["unit"]:
-            raise ContractError("unit mismatch")
-        decimals = first_present(row, adapter["decimals_columns"], required=False)
-        if decimals and int(decimals) != int(contract["source_decimals"]):
+
+        checks = [
+            ("series", _required(row, adapter, "series_key_columns"), SERIES_KEY),
+            ("frequency", _required(row, adapter, "frequency_columns"), contract["frequency"]),
+            ("reference area", _required(row, adapter, "reference_area_columns"), contract["reference_area"]),
+            ("currency", _required(row, adapter, "currency_columns"), contract["currency_code"]),
+            ("provider", _required(row, adapter, "provider_columns"), contract["provider_code"]),
+            ("instrument", _required(row, adapter, "instrument_columns"), contract["instrument_code"]),
+            ("provider id", _required(row, adapter, "provider_id_columns"), contract["provider_id_code"]),
+            ("data type", _required(row, adapter, "data_type_columns"), contract["data_type_code"]),
+            ("unit", _required(row, adapter, "unit_columns"), contract["unit"]),
+        ]
+        for label, observed, expected in checks:
+            if observed != expected:
+                raise ContractError(f"{label} mismatch: {observed!r} != {expected!r}")
+
+        if int(_required(row, adapter, "unit_multiplier_columns")) != int(contract["unit_multiplier"]):
+            raise ContractError("UNIT_MULT mismatch")
+        if int(_required(row, adapter, "decimals_columns")) != int(contract["source_decimals"]):
             raise ContractError("DECIMALS mismatch")
+
         rows.append(Observation(day, value, status))
+
     rows.sort(key=lambda x: x.day)
     if not rows:
         raise ContractError("no observations")
@@ -52,12 +71,14 @@ def parse_csv(raw: bytes, contract: dict, *, permit_unverified_adapter: bool = F
             raise ContractError("dates not strictly increasing")
     return rows
 
+
 def compare_full_tail(full: list[Observation], tail: list[Observation]) -> None:
     if len(tail) > len(full):
         raise ContractError("tail longer than full")
     expected = full[-len(tail):]
     if [(x.day, x.value, x.status) for x in expected] != [(x.day, x.value, x.status) for x in tail]:
         raise ContractError("full/tail release race")
+
 
 def percentile_inc(values: list[Decimal], p: Decimal) -> Decimal:
     if not values:
