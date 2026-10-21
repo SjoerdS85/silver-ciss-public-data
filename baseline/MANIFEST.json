@@ -11,5 +11,6 @@
   "series_key": "CISS.D.U2.Z0Z.4F.EC.SS_CIN.IDX",
   "value_format": "exactly four decimal places",
   "line_ending": "LF",
-  "status": "CONTROLLED_EXPORT_READY_FOR_COMMIT"
+  "status": "COMMITTED_AND_CI_VERIFIED",
+  "main_merge_sha": "7d0b71d6fb16ab80081ed565b05f29a1c5253f76"
 }
