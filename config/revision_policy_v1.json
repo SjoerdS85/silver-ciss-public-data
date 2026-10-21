@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "status": "PENDING_REGIE_DISPOSITION",
+  "decision_scope": "CISS current official vintage versus accepted DB31 model vintage",
+  "accepted_model_vintage": {
+    "cut_date": "2026-09-10",
+    "baseline_csv_sha256": "40e1d3d78b743b8f4e69b3a50d1f620b2e3c35156481b69fe346e571369c4d34",
+    "baseline_workbook_sha256": "e5efd6d729cca0d2d79f49b9a2262db3517a595f9eeae68ddda58a85579fa151"
+  },
+  "current_vintage_evidence": {
+    "official_full_sha256": "14f8459ba904290edf23984e4960b31735e92eb0a3d9c71d22702a8c9939114e",
+    "revision_report_sha256": "08b533af543b5d586bf6830f20d26f9d8620665994e946cfe3add2b8bda91935",
+    "reconciliation_json_sha256": "c88fb746cbdf4cc718c42dc053da1e92d61943d53ed3163968770e5d7a5818a2",
+    "revision_count": 1018,
+    "missing_baseline_dates": 0,
+    "extra_pre_cut_dates": 0,
+    "first_revision_date": "1999-04-14",
+    "last_revision_date": "2026-09-10",
+    "max_abs_4dp_revision": "0.0014",
+    "max_abs_4dp_revision_date": "2022-10-26",
+    "completed_month_classification_change_count": 0,
+    "completed_months_compared": 559
+  },
+  "impact_controls": {
+    "baseline_sep_2026_p75": "0.1745166666666666666666666667",
+    "baseline_sep_2026_p95": "0.4310364285714285714285714286",
+    "current_sep_2026_p75": "0.1745294460268478755952380952",
+    "current_sep_2026_p95": "0.4310231641276560236666666667",
+    "current_sep_2026_state": "NORMAL",
+    "current_oct_2026_partial_state": "NORMAL",
+    "current_oct_2026_partial_stress_vote": 0
+  },
+  "proposed_disposition": "ACCEPT_CURRENT_OFFICIAL_VINTAGE_FOR_OPERATIONAL_CISS_ONLY_WHILE_PRESERVING_DB31_AS_IMMUTABLE_ACCEPTED_MODEL_VINTAGE",
+  "publication_gate": "BLOCKED_UNTIL_EXPLICIT_REGIE_ACCEPTANCE"
+}

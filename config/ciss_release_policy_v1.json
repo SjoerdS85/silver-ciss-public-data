@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "status": "VERIFIED",
+  "series_key": "CISS.D.U2.Z0Z.4F.EC.SS_CIN.IDX",
+  "official_information_url": "https://data.ecb.europa.eu/data/datasets/ciss/data-information",
+  "official_timeliness": "New CISS is updated daily with the data of the previous day, except China.",
+  "verified_utc": "2026-10-21T14:11:10Z",
+  "expected_observation_weekdays": [0, 1, 2, 3, 4],
+  "weekend_observations_expected": false,
+  "holiday_exclusions": [],
+  "calendar_evidence": {
+    "full_history_rows": 12217,
+    "first_observation": "1980-01-03",
+    "last_observation": "2026-10-20",
+    "missing_expected_weekdays": 0,
+    "evidence_note": "The acquired full official history contains every Monday-Friday date between first and latest observation, including dates that are common euro-area public holidays. Therefore no holiday exclusion list is applied."
+  },
+  "production_schedule_utc": "17:23",
+  "expected_latest_rule": "latest Monday-Friday calendar date strictly before the acquisition UTC date",
+  "freshness": {
+    "healthy_max_missing_expected_days": 2,
+    "degraded_max_missing_expected_days": 5,
+    "failed_above_missing_expected_days": 5
+  },
+  "fail_closed": true
+}
