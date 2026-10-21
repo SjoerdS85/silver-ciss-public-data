@@ -1,23 +1,31 @@
 # CISS reconciliation governance
 
-The accepted DB31 CISS baseline is an immutable model vintage for the 2026-09-12 validation cut. A later official ECB vintage may contain historical revisions.
+The accepted DB31 CISS baseline remains the immutable model vintage for the 2026-09-12 validation cut. A later official ECB vintage may contain historical revisions.
 
-The pipeline therefore separates two questions:
+The pipeline separates:
 
-1. **Transport and schema validity** — can the exact official ECB series be acquired and parsed under the frozen contract?
-2. **Vintage reconciliation** — does the current official history equal the accepted DB31 vintage after the explicit four-decimal comparison normalization?
+1. **transport/schema validity** — can the exact official ECB series be acquired and parsed;
+2. **historical reconciliation** — how the current official pre-cut history differs from DB31;
+3. **revision governance** — whether that exact historical revision set has been explicitly accepted for operational use.
 
-A current-vintage value difference is never silently written back into the DB31 baseline. It is emitted into `revision_report.csv`, retained with acquisition hashes, and evaluated for model impact.
+No current-vintage value is silently written back into DB31.
 
-## Status rules
+## Accepted decision — 2026-10-21
 
-- no date/value differences through the cut: `PASS`;
-- historical value differences through the cut: `HOLD_REVISION`;
-- missing/extra dates, schema/series failure, invalid baseline hash, or full/tail inconsistency: fail the audit before trusted publication;
-- `HOLD_REVISION` blocks the trusted current publication pointer until Regie explicitly disposes of the revision evidence.
+Regie accepted the current official ECB vintage for ongoing operational CISS calculations while preserving DB31 unchanged as the accepted historical model vintage.
 
-## Model-impact check
+The accepted revision set is pinned by the deterministic SHA-256 of `revision_report.csv`:
 
-For each run the audit independently recomputes monthly means and prior-only expanding P75/P95 thresholds for the accepted baseline and the current official vintage. It counts historical NORMAL/ELEVATED/EXTREME classification changes and separately reports the current cut-month and partial-current-month stress state.
+`08b533af543b5d586bf6830f20d26f9d8620665994e946cfe3add2b8bda91935`
 
-No result from this audit changes the Silver signal model thresholds or monitor governance by itself.
+The accepted set contains 1,018 four-decimal comparison differences, no missing or extra dates, and produced zero completed-month NORMAL/ELEVATED/EXTREME classification changes across the 559 compared months.
+
+## Mechanical rule
+
+- no pre-cut differences: `NO_REVISIONS`;
+- exact match to the accepted revision fingerprint and controls: `ACCEPTED_CURRENT_VINTAGE`;
+- any different historical revision fingerprint or control mismatch: `HOLD_REVISION`.
+
+Only `NO_REVISIONS` or `ACCEPTED_CURRENT_VINTAGE` is eligible to proceed to later production gates. A new or changed official historical revision therefore automatically returns the route to review.
+
+This decision does not change the Silver signal-model thresholds or retroactively rewrite the 2026-09-12 research vintage.

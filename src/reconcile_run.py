@@ -164,14 +164,69 @@ def write_revision_csv(path: Path, result: dict) -> None:
         writer.writerows(result["value_diffs"])
 
 
+def assess_revision_governance(
+    revision_csv_path: str | Path,
+    policy_path: str | Path,
+    reconciliation: dict,
+    impact: dict,
+) -> dict:
+    path = Path(revision_csv_path)
+    digest = sha256_bytes(path.read_bytes())
+
+    if reconciliation["baseline_reconciliation_status"] == "PASS":
+        return {
+            "status": "NO_REVISIONS",
+            "revision_report_sha256": digest,
+            "fingerprint_match": True,
+            "publication_gate": "ELIGIBLE_FOR_NEXT_GATES",
+        }
+
+    policy = load_json(policy_path)
+    accepted = policy.get("accepted_revision_fingerprint", {})
+    conditions = {
+        "policy_status": policy.get("status") == "ACCEPTED",
+        "revision_report_sha256": digest == accepted.get("revision_report_sha256"),
+        "revision_count": reconciliation["revision_count"] == accepted.get("revision_count"),
+        "missing_baseline_dates": len(reconciliation["missing_baseline_dates"]) == accepted.get("missing_baseline_dates"),
+        "extra_pre_cut_dates": len(reconciliation["extra_pre_cut_dates"]) == accepted.get("extra_pre_cut_dates"),
+        "first_revision_date": (
+            reconciliation["value_diffs"][0]["date"] if reconciliation["value_diffs"] else None
+        ) == accepted.get("first_revision_date"),
+        "last_revision_date": (
+            reconciliation["value_diffs"][-1]["date"] if reconciliation["value_diffs"] else None
+        ) == accepted.get("last_revision_date"),
+        "classification_change_count": impact["classification_change_count"]
+        == accepted.get("completed_month_classification_change_count"),
+        "classification_months_compared": impact["classification_months_compared"]
+        == accepted.get("completed_months_compared"),
+    }
+    match = all(conditions.values())
+    return {
+        "status": "ACCEPTED_CURRENT_VINTAGE" if match else "HOLD_REVISION",
+        "revision_report_sha256": digest,
+        "accepted_revision_report_sha256": accepted.get("revision_report_sha256"),
+        "fingerprint_match": match,
+        "checks": conditions,
+        "publication_gate": "ELIGIBLE_FOR_NEXT_GATES" if match else "BLOCKED",
+    }
+
+
 def run(
     *,
     contract_path: str,
     baseline_csv: str,
     baseline_manifest: str,
+    revision_policy: str,
     output_dir: str,
 ) -> dict:
     contract = load_json(contract_path)
+    baseline_manifest_data = load_json(baseline_manifest)
+    policy = load_json(revision_policy)
+    if policy["accepted_model_vintage"]["baseline_csv_sha256"] != baseline_manifest_data["export_sha256"]:
+        raise ContractError("revision policy baseline CSV fingerprint mismatch")
+    if policy["accepted_model_vintage"]["baseline_workbook_sha256"] != baseline_manifest_data["source_workbook_sha256"]:
+        raise ContractError("revision policy workbook fingerprint mismatch")
+
     baseline = load_baseline(baseline_csv, baseline_manifest, contract)
 
     out = Path(output_dir)
@@ -201,11 +256,27 @@ def run(
             max_abs_revision = delta
             max_abs_revision_date = diff["date"]
 
+    out.mkdir(parents=True, exist_ok=True)
+    revision_path = out / "revision_report.csv"
+    write_revision_csv(revision_path, reconciliation)
+    impact = model_impact(baseline, official, cut)
+    revision_governance = assess_revision_governance(
+        revision_path,
+        revision_policy,
+        reconciliation,
+        impact,
+    )
+
     report = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "series_key": contract["series_key"],
         "baseline_cut_date": contract["baseline_cut_date"],
-        "baseline_manifest": load_json(baseline_manifest),
+        "baseline_manifest": baseline_manifest_data,
+        "revision_policy": {
+            "status": policy["status"],
+            "accepted_at_utc": policy.get("accepted_at_utc"),
+            "accepted_disposition": policy.get("accepted_disposition"),
+        },
         "acquisition": {
             "full_sha256": acquisition["full"]["sha256"],
             "tail_sha256": acquisition["tail"]["sha256"],
@@ -236,18 +307,15 @@ def run(
             "max_abs_4dp_revision": str(max_abs_revision),
             "max_abs_4dp_revision_date": max_abs_revision_date,
         },
-        "model_impact": model_impact(baseline, official, cut),
-        "publication_gate": "BLOCKED"
-        if reconciliation["baseline_reconciliation_status"] != "PASS"
-        else "ELIGIBLE_FOR_NEXT_GATES",
+        "model_impact": impact,
+        "revision_governance": revision_governance,
+        "publication_gate": revision_governance["publication_gate"],
     }
 
-    out.mkdir(parents=True, exist_ok=True)
     (out / "reconciliation.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    write_revision_csv(out / "revision_report.csv", reconciliation)
     return report
 
 
@@ -256,17 +324,20 @@ def main() -> int:
     parser.add_argument("--contract", default="config/ciss_contract_v1.json")
     parser.add_argument("--baseline-csv", default="baseline/ciss_db31_accepted_20260910.csv")
     parser.add_argument("--baseline-manifest", default="baseline/MANIFEST.json")
+    parser.add_argument("--revision-policy", default="config/revision_policy_v1.json")
     parser.add_argument("--output-dir", required=True)
     args = parser.parse_args()
     report = run(
         contract_path=args.contract,
         baseline_csv=args.baseline_csv,
         baseline_manifest=args.baseline_manifest,
+        revision_policy=args.revision_policy,
         output_dir=args.output_dir,
     )
     print(json.dumps(
         {
-            "status": report["revision_summary"]["status"],
+            "reconciliation_status": report["revision_summary"]["status"],
+            "revision_governance_status": report["revision_governance"]["status"],
             "revision_count": report["revision_summary"]["revision_count"],
             "classification_change_count": report["model_impact"]["classification_change_count"],
             "latest_observation": report["validation"]["official_last_observation"],
