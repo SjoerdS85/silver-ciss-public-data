@@ -14,8 +14,10 @@ CALCULATION_VERSION = "CISS_EXPANDING_REALTIME_LIKE_V0_2"
 MODEL_VERSION = "50_Silver_Signal_Model.md v0.2"
 MODEL_VINTAGE_DATE = "2026-09-12"
 
+
 class ContractError(RuntimeError):
     pass
+
 
 @dataclass(frozen=True)
 class Observation:
@@ -24,14 +26,18 @@ class Observation:
     status: str = ""
     series_key: str = SERIES_KEY
 
+
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
 
 def canonical_json_bytes(payload: Mapping) -> bytes:
     return (json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
 
+
 def load_json(path: str | Path) -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
 
 def parse_iso_date(raw: str) -> date:
     try:
@@ -42,7 +48,8 @@ def parse_iso_date(raw: str) -> date:
         raise ContractError(f"date is not canonical YYYY-MM-DD: {raw!r}")
     return value
 
-def parse_decimal(raw: str, max_decimal_places: int = 4) -> Decimal:
+
+def parse_decimal(raw: str, max_decimal_places: int | None = None) -> Decimal:
     text = raw.strip()
     if not text or "e" in text.lower():
         raise ContractError(f"invalid decimal representation: {raw!r}")
@@ -52,13 +59,15 @@ def parse_decimal(raw: str, max_decimal_places: int = 4) -> Decimal:
         raise ContractError(f"invalid decimal: {raw!r}") from exc
     if not value.is_finite():
         raise ContractError("non-finite decimal")
-    if max(0, -value.as_tuple().exponent) > max_decimal_places:
+    if max_decimal_places is not None and max(0, -value.as_tuple().exponent) > max_decimal_places:
         raise ContractError(f"more than {max_decimal_places} decimal places: {raw!r}")
     return value
+
 
 def decimal_text(value: Decimal) -> str:
     text = format(value, "f")
     return text.rstrip("0").rstrip(".") if "." in text else text
+
 
 def first_present(row: Mapping[str, str], candidates: Sequence[str], required: bool = True) -> str | None:
     for key in candidates:
