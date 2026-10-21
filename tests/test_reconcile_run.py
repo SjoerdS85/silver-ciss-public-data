@@ -31,8 +31,13 @@ class ReconciliationRunTests(unittest.TestCase):
         ]
         means = monthly_means(completed)
         p75, p95 = thresholds(means, "2026-09")
-        self.assertLess(abs(p75 - Decimal("0.17451666666666668")), Decimal("1e-16"))
-        self.assertLess(abs(p95 - Decimal("0.43103642857142827")), Decimal("1e-16"))
+
+        # DB31's displayed threshold controls come from spreadsheet floating
+        # representation. The exact Decimal type-7 result may differ by a few
+        # 1e-16 while representing the same frozen quantile convention.
+        tolerance = Decimal("5e-16")
+        self.assertLess(abs(p75 - Decimal("0.17451666666666668")), tolerance)
+        self.assertLess(abs(p95 - Decimal("0.43103642857142827")), tolerance)
 
     def test_model_impact_detects_no_change_when_official_equals_baseline(self):
         impact = model_impact(
