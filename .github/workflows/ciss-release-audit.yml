@@ -1,0 +1,80 @@
+name: CISS Release Audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "config/ciss_release_policy_v1.json"
+      - "config/ciss_contract_v1.json"
+      - "src/acquire.py"
+      - "src/validate.py"
+      - "src/release_audit.py"
+      - "tests/test_failure_injection.py"
+      - ".github/workflows/ciss-release-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+
+      - name: Acquire official ECB payloads
+        run: python -m src.acquire --output-dir artifacts/release-audit/acquisition
+
+      - name: Validate schema, full-tail parity, gaps and freshness
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from src.common import load_json
+          from src.release_audit import audit_release
+          from src.validate import compare_full_tail, parse_csv
+
+          contract = load_json("config/ciss_contract_v1.json")
+          policy = load_json("config/ciss_release_policy_v1.json")
+          acquisition = json.loads(Path("artifacts/release-audit/acquisition/acquisition.json").read_text())
+
+          full_raw = Path(acquisition["full"]["body_path"]).read_bytes()
+          tail_raw = Path(acquisition["tail"]["body_path"]).read_bytes()
+          full = parse_csv(full_raw, contract)
+          tail = parse_csv(tail_raw, contract)
+          compare_full_tail(full, tail)
+
+          report = audit_release(
+              full,
+              retrieval_timestamp_utc=acquisition["full"]["retrieval_timestamp_utc"],
+              degraded_after=policy["freshness"]["healthy_max_missing_expected_days"],
+              failed_after=policy["freshness"]["failed_above_missing_expected_days"],
+          )
+          report["full_tail_parity"] = "PASS"
+          report["official_row_count"] = len(full)
+          report["full_sha256"] = acquisition["full"]["sha256"]
+          report["tail_sha256"] = acquisition["tail"]["sha256"]
+
+          out = Path("artifacts/release-audit/release_audit.json")
+          out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+          print(json.dumps(report, indent=2, sort_keys=True))
+
+          if report["release_audit_status"] != "PASS":
+              raise SystemExit("trusted release audit is not PASS")
+          PY
+
+      - name: Upload release-audit evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: ciss-release-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/release-audit
+          if-no-files-found: error
+          retention-days: 14
