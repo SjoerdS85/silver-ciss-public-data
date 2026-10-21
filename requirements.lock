@@ -1,0 +1,2 @@
+# Runtime dependencies: Python standard library only.
+# GitHub Actions dependencies are pinned by full commit SHA in workflow files.
