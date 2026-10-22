@@ -1,11 +1,17 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "1.2",
   "status": "VERIFIED",
   "series_key": "CISS.D.U2.Z0Z.4F.EC.SS_CIN.IDX",
   "official_information_url": "https://data.ecb.europa.eu/data/datasets/ciss/data-information",
   "official_timeliness": "New CISS is updated daily with the data of the previous day, except China.",
   "verified_utc": "2026-10-21T14:11:10Z",
-  "expected_observation_weekdays": [0, 1, 2, 3, 4],
+  "expected_observation_weekdays": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
   "weekend_observations_expected": false,
   "holiday_exclusions": [],
   "calendar_evidence": {
@@ -16,9 +22,14 @@
     "evidence_note": "The acquired full official history contains every Monday-Friday date between first and latest observation, including dates that are common euro-area public holidays. Therefore no holiday exclusion list is applied."
   },
   "production_schedule": {
-    "status": "DISABLED_PENDING_REGIE_GO_LIVE",
-    "utc": null,
-    "note": "No production clock time is authorized yet. The earlier 17:23 value was a syntactic example only."
+    "status": "AUTHORIZED_ACTIVE",
+    "cadence": "DAILY",
+    "local_time": "19:17",
+    "timezone": "Europe/Amsterdam",
+    "cron": "17 19 * * *",
+    "timezone_aware": true,
+    "authorized_at": "2026-10-22",
+    "note": "Regie authorized production at 19:17 Europe/Amsterdam. GitHub Actions timezone-aware scheduling preserves local wall-clock time across DST."
   },
   "expected_latest_rule": "latest Monday-Friday calendar date strictly before the acquisition UTC date",
   "freshness": {
