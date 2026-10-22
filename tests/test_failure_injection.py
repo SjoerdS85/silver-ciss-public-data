@@ -1,15 +1,10 @@
-import copy
 import json
 import unittest
 from datetime import date
 from pathlib import Path
 
 from src.common import ContractError, Observation
-from src.release_audit import (
-    audit_release,
-    classify_freshness,
-    missing_expected_weekdays,
-)
+from src.release_audit import audit_release, classify_freshness, missing_expected_weekdays
 from src.validate import compare_full_tail, parse_csv
 
 
@@ -57,7 +52,8 @@ class FailureInjectionTests(unittest.TestCase):
         self.assertEqual(classify_freshness(0), "HEALTHY")
         self.assertEqual(classify_freshness(2), "HEALTHY")
         self.assertEqual(classify_freshness(3), "DEGRADED")
-        self.assertEqual(classify_freshness(5), "DEGRADED")
+        self.assertEqual(classify_freshness(4), "DEGRADED")
+        self.assertEqual(classify_freshness(5), "FAILED")
         self.assertEqual(classify_freshness(6), "FAILED")
 
     def test_current_release_is_healthy(self):
