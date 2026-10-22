@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "status": "VERIFIED",
   "series_key": "CISS.D.U2.Z0Z.4F.EC.SS_CIN.IDX",
   "official_information_url": "https://data.ecb.europa.eu/data/datasets/ciss/data-information",
@@ -15,12 +15,16 @@
     "missing_expected_weekdays": 0,
     "evidence_note": "The acquired full official history contains every Monday-Friday date between first and latest observation, including dates that are common euro-area public holidays. Therefore no holiday exclusion list is applied."
   },
-  "production_schedule_utc": "17:23",
+  "production_schedule": {
+    "status": "DISABLED_PENDING_REGIE_GO_LIVE",
+    "utc": null,
+    "note": "No production clock time is authorized yet. The earlier 17:23 value was a syntactic example only."
+  },
   "expected_latest_rule": "latest Monday-Friday calendar date strictly before the acquisition UTC date",
   "freshness": {
     "healthy_max_missing_expected_days": 2,
-    "degraded_max_missing_expected_days": 5,
-    "failed_above_missing_expected_days": 5
+    "degraded_max_missing_expected_days": 4,
+    "failed_at_missing_expected_days": 5
   },
   "fail_closed": true
 }
