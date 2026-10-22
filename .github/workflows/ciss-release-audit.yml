@@ -56,7 +56,7 @@ jobs:
               full,
               retrieval_timestamp_utc=acquisition["full"]["retrieval_timestamp_utc"],
               degraded_after=policy["freshness"]["healthy_max_missing_expected_days"],
-              failed_after=policy["freshness"]["failed_above_missing_expected_days"],
+              failed_after=policy["freshness"]["failed_at_missing_expected_days"],
           )
           report["full_tail_parity"] = "PASS"
           report["official_row_count"] = len(full)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
 from typing import Iterable
 
 from .common import ContractError, Observation
@@ -41,8 +40,7 @@ def count_missing_expected_days(latest: date, expected_latest: date) -> int:
         )
     if latest == expected_latest:
         return 0
-    start = latest + timedelta(days=1)
-    return len(expected_weekdays(start, expected_latest))
+    return len(expected_weekdays(latest + timedelta(days=1), expected_latest))
 
 
 def classify_freshness(
@@ -53,7 +51,8 @@ def classify_freshness(
 ) -> str:
     if missing_expected_days < 0:
         raise ContractError("negative freshness lag")
-    if missing_expected_days > failed_after:
+    # Governance contract: five missing expected business days already blocks.
+    if missing_expected_days >= failed_after:
         return "FAILED"
     if missing_expected_days > degraded_after:
         return "DEGRADED"

@@ -2,8 +2,9 @@ import unittest
 from datetime import date
 from decimal import Decimal
 
-from src.common import ContractError, Observation, sha256_bytes
 from src.build_publication import canonical_dataset_bytes, release_tag
+from src.common import ContractError, Observation, sha256_bytes
+from src.connector_snapshot import build_connector_attestation, git_blob_sha
 from src.publish import current_pointer, require_publish_gates
 
 
@@ -22,9 +23,19 @@ class PublicationTests(unittest.TestCase):
         )
         self.assertEqual(len(sha256_bytes(raw)), 64)
 
-    def test_release_tag_is_content_addressed(self):
-        tag = release_tag(date(2026, 10, 20), "a" * 64)
-        self.assertEqual(tag, "ciss-20261020-aaaaaaaaaaaa")
+    def test_release_tag_is_unique_per_validated_retrieval(self):
+        tag = release_tag(
+            date(2026, 10, 20),
+            "a" * 64,
+            "2026-10-22T07:55:12Z",
+        )
+        self.assertEqual(tag, "ciss-v2-20261020-20261022T075512Z-aaaaaaaaaaaa")
+
+    def test_git_blob_sha_matches_git_object_rule(self):
+        self.assertEqual(
+            git_blob_sha(b"hello\n"),
+            "ce013625030ba8dba906f756967f9e9ca394464a",
+        )
 
     def test_accepted_revision_governance_passes(self):
         require_publish_gates(
@@ -52,14 +63,48 @@ class PublicationTests(unittest.TestCase):
             row_count=12217,
             first_observation="1980-01-03",
             last_observation="2026-10-20",
-            producer_version="0.5.0-dev",
+            producer_version="0.7.0-dev",
             derived_audit={"stress": {"stress_vote": 0}},
             revision_governance_status="ACCEPTED_CURRENT_VINTAGE",
-            published_timestamp_utc="2026-10-21T17:23:00Z",
+            published_timestamp_utc="2026-10-22T07:55:12Z",
         )
         self.assertEqual(pointer["revision_governance_status"], "ACCEPTED_CURRENT_VINTAGE")
-        self.assertEqual(pointer["valid_until_utc"], "2026-10-22T23:23:00Z")
+        self.assertEqual(pointer["valid_until_utc"], "2026-10-23T13:55:12Z")
         self.assertTrue(pointer["snapshot_url"].endswith("ciss_snapshot.csv"))
+
+    def test_connector_attestation_binds_tagged_files(self):
+        dataset = b"date,ciss\n2026-10-20,0.01\n"
+        manifest = b"{\"schema_version\":\"2.0\"}\n"
+        revision = b"date,baseline,current\n"
+        pointer = {
+            "source": "ECB_OFFICIAL",
+            "series_key": "CISS.D.U2.Z0Z.4F.EC.SS_CIN.IDX",
+            "frequency": "D",
+            "unit": "Pure number",
+            "published_timestamp_utc": "2026-10-22T07:55:12Z",
+            "valid_until_utc": "2026-10-23T13:55:12Z",
+            "validation_status": "PASS",
+            "freshness_status": "HEALTHY",
+            "release_audit_status": "PASS",
+            "revision_governance_status": "ACCEPTED_CURRENT_VINTAGE",
+            "canonical_row_count": 1,
+            "canonical_first_observation": "2026-10-20",
+            "canonical_last_observation": "2026-10-20",
+            "canonical_coverage_complete": True,
+            "derived_audit": {"stress": {"stress_vote": 0}},
+        }
+        att = build_connector_attestation(
+            repository="o/r",
+            tag="ciss-v2-test",
+            dataset_bytes=dataset,
+            manifest_bytes=manifest,
+            revision_bytes=revision,
+            pointer=pointer,
+            producer_version="0.7.0-dev",
+        )
+        self.assertEqual(att["architecture"], "GITHUB_CONNECTOR_SNAPSHOT_V2")
+        self.assertEqual(att["release_assets"]["dataset"]["sha256"], sha256_bytes(dataset))
+        self.assertEqual(att["tagged_files"]["dataset"]["git_blob_sha"], git_blob_sha(dataset))
 
 
 if __name__ == "__main__":
