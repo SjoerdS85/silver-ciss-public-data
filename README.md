@@ -30,7 +30,7 @@ The accepted signal-model definitions, CISS calculation rules, source identity, 
 - TTL/freshness validation: PASS.
 - CISS completed-month / prior-only P75/P95 / stress-state / stress-phase reproduction: PASS within 1e-12.
 - `AUTOMATIC_CISS_ROUTE_VERIFIED=YES`.
-- Scheduled production: still disabled pending separate Regie go-live.
+- Scheduled production: AUTHORIZED and configured daily at 19:17 Europe/Amsterdam (timezone-aware).
 - Silver Guardrail Watch and Full Monitor: still paused pending separate reactivation decision.
 
 ## Accepted Connector Snapshot v2 release
@@ -55,14 +55,25 @@ The Scheduled Task does not depend on direct public DNS/HTTP. It discovers the l
 
 Release notes are not part of the integrity chain.
 
+## Production schedule
+
+Regie authorized daily production at **19:17 Europe/Amsterdam** on 2026-10-22. The workflow uses GitHub Actions timezone-aware scheduling:
+
+```yaml
+schedule:
+  - cron: "17 19 * * *"
+    timezone: "Europe/Amsterdam"
+```
+
+This keeps the local production time at 19:17 across CET/CEST changes. Scheduled runs execute the same fail-closed build, immutable Release, tagged-tree verification and Pages deployment as approved manual production runs.
+
 ## Remaining activation gates
 
-The CISS transport route is technically verified. Remaining steps are operational/governance decisions:
+The CISS transport route and production schedule are technically configured. Remaining operational/governance steps are:
 
-1. authorize a production schedule;
-2. add the GitHub Actions scheduled trigger;
-3. observe at least the first scheduled publication and connector consumption cycle;
-4. separately decide whether `RECALIBRATION_REQUIRED` can be cleared;
-5. separately reactivate Guardrail Watch and/or Full Monitor under the accepted monitor specification.
+1. observe the first scheduled publication at 19:17 Europe/Amsterdam;
+2. verify the subsequent connector-consumption cycle against that scheduled release;
+3. separately decide whether `RECALIBRATION_REQUIRED` can be cleared;
+4. separately reactivate Guardrail Watch and/or Full Monitor under the accepted monitor specification.
 
-Until the production schedule is authorized, scheduled publication remains disabled.
+Monitor reactivation is not implied by producer scheduling.
