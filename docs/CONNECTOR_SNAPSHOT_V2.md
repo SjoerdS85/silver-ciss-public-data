@@ -1,54 +1,68 @@
 # Connector Snapshot v2 — governance record
 
-Approved by Regie on 2026-10-22 after:
-
-- direct Scheduled Task DNS failure for `sjoerds85.github.io`;
-- direct Scheduled Task DNS failure for `github.com`, `api.github.com` and `raw.githubusercontent.com`;
-- successful Scheduled Task use of the connected GitHub app for immutable Release metadata and repository text-file retrieval.
+Approved by Regie on 2026-10-22.
 
 ## Scope
 
-This changes only the CISS transport/consumption layer. It does not change:
+This changes only the CISS transport/consumption layer. It does not change the CISS series identity, DB31 historical model vintage, prior-only expanding quantile method, stress thresholds/phase rules, Silver Signal Model v0.2, monitor evidence families, scenario ranges, or trading interpretation.
 
-- CISS series identity;
-- DB31 historical model vintage;
-- prior-only expanding quantile method;
-- stress thresholds or phase rules;
-- Silver Signal Model v0.2;
-- monitor evidence families;
-- scenario ranges;
-- trading interpretation.
+## Accepted end-to-end evidence
 
-## Integrity model
+Scheduled Task runtime, using only the connected GitHub app:
 
-The immutable Release contributes SHA-256 asset digests and an immutable tag.
+- latest immutable v2 Release discovery: PASS;
+- immutable tag file retrieval: PASS;
+- full dataset materialization: PASS;
+- 323,763 bytes and 12,217 unique daily observations: PASS;
+- Release asset SHA-256 chain: PASS;
+- tagged Git blob identity chain: PASS;
+- manifest integrity: PASS;
+- TTL/freshness validation: PASS;
+- full-history parse: PASS;
+- completed-month means: reproduced;
+- prior-only expanding P75/P95: reproduced;
+- stress classification: reproduced;
+- exclusive stress phase: reproduced;
+- numerical tolerance: within 1e-12.
 
-The immutable tag points to a data-only Git commit containing the full dataset, manifest, revision report and connector attestation. The GitHub connector returns each file's Git blob SHA and content for a requested tag reference.
+Accepted Release:
 
-The Task must require both chains:
+`ciss-v2-20261020-20261022T080329Z-01a9f9279038`
 
-```text
-immutable Release metadata
-  -> immutable tag
-  -> Release asset SHA-256 digests
+Snapshot commit:
 
-immutable tag
-  -> tagged connector_attestation.json
-  -> expected Git blob SHAs
-  -> tagged manifest/full dataset/revision report
-```
+`a66b0493580a6335fd6b1ca9d8b89d92f99fe25d`
 
-The Task must also materialize and parse the full dataset and reproduce the frozen CISS method. Metadata-only success is insufficient.
-
-## Current gate
-
-Until a real v2 snapshot and Task probe pass:
+## Integrity evidence
 
 ```text
-GITHUB_CONNECTOR_TASK_ROUTE=PASS_METADATA_ONLY
-CONNECTOR_SNAPSHOT_V2=PENDING_REAL_PUBLICATION
-AUTOMATIC_CISS_ROUTE_VERIFIED=NO
-SCHEDULED_PRODUCTION=DISABLED
-SILVER_GUARDRAIL_WATCH=PAUSED
-SILVER_FULL_MONITOR=PAUSED
+dataset SHA-256
+01a9f927903828677dbd8349f92c9aebc43922022a3537bfc21ec5f2e529aff1
+
+manifest SHA-256
+acc328e0eadd3dcff2cf1d145a5893f563fbd5fb64c02b4d70932107c7928cd5
+
+attestation SHA-256
+1b87a73736717cb205228bbfbda3568182f5ed668f508ca964f2b3972d5bbef0
+
+revision report SHA-256
+08b533af543b5d586bf6830f20d26f9d8620665994e946cfe3add2b8bda91935
 ```
+
+## Acceptance conclusion
+
+```text
+GITHUB_CONNECTOR_TASK_ROUTE=PASS
+IMMUTABLE_TAG_FILE_RETRIEVAL=PASS
+FULL_DATASET_MATERIALIZED=PASS
+FULL_HISTORY_PARSE=PASS
+DATASET_INTEGRITY_CHAIN=PASS
+MANIFEST_INTEGRITY_CHAIN=PASS
+TTL_FRESHNESS_CHECK=PASS
+CISS_METHOD_REPRODUCTION=PASS
+AUTOMATIC_CISS_ROUTE_VERIFIED=YES
+```
+
+This closes the technical CISS automatic-consumer route gate.
+
+It does not itself authorize a GitHub production schedule, clear `RECALIBRATION_REQUIRED`, or reactivate either Silver monitor. Those remain separate Regie decisions.
