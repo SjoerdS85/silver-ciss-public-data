@@ -9,10 +9,11 @@ from pathlib import Path
 
 from .acquire import acquire_pair
 from .common import ContractError, Observation, canonical_json_bytes, load_json, parse_iso_date, sha256_bytes
+from .connector_snapshot import build_connector_attestation, write_connector_tree
 from .publish import current_pointer, require_publish_gates
 from .reconcile import reconcile
 from .reconcile_run import assess_revision_governance, load_baseline, model_impact, write_revision_csv
-from .release_audit import audit_release
+from .release_audit import audit_release, parse_retrieval_timestamp
 from .validate import compare_full_tail, parse_csv
 
 
@@ -25,8 +26,9 @@ def canonical_dataset_bytes(rows: list[Observation]) -> bytes:
     return stream.getvalue().encode("utf-8")
 
 
-def release_tag(latest_observation, dataset_sha256: str) -> str:
-    return f"ciss-{latest_observation.strftime('%Y%m%d')}-{dataset_sha256[:12]}"
+def release_tag(latest_observation, dataset_sha256: str, retrieval_timestamp_utc: str) -> str:
+    stamp = parse_retrieval_timestamp(retrieval_timestamp_utc).strftime("%Y%m%dT%H%M%SZ")
+    return f"ciss-v2-{latest_observation.strftime('%Y%m%d')}-{stamp}-{dataset_sha256[:12]}"
 
 
 def build_publication(
@@ -63,7 +65,7 @@ def build_publication(
         full,
         retrieval_timestamp_utc=acquisition["full"]["retrieval_timestamp_utc"],
         degraded_after=release_policy["freshness"]["healthy_max_missing_expected_days"],
-        failed_after=release_policy["freshness"]["failed_above_missing_expected_days"],
+        failed_after=release_policy["freshness"]["failed_at_missing_expected_days"],
     )
 
     official = {row.day: row.value for row in full}
@@ -95,21 +97,23 @@ def build_publication(
     dataset = canonical_dataset_bytes(full)
     dataset_sha = sha256_bytes(dataset)
     latest = full[-1].day
-    tag = release_tag(latest, dataset_sha)
+    retrieval_timestamp = acquisition["full"]["retrieval_timestamp_utc"]
+    tag = release_tag(latest, dataset_sha, retrieval_timestamp)
     producer_version = Path(version_path).read_text(encoding="utf-8").strip()
 
     snapshot_path = out / "ciss_snapshot.csv"
     snapshot_path.write_bytes(dataset)
 
     snapshot_manifest = {
-        "schema_version": "1.0",
+        "schema_version": "2.0",
+        "architecture": "GITHUB_CONNECTOR_SNAPSHOT_V2",
         "tag": tag,
         "producer_version": producer_version,
         "source": "ECB_OFFICIAL",
         "series_key": contract["series_key"],
         "frequency": contract["frequency"],
         "unit": contract["unit_label"],
-        "generated_from_retrieval_timestamp_utc": acquisition["full"]["retrieval_timestamp_utc"],
+        "generated_from_retrieval_timestamp_utc": retrieval_timestamp,
         "canonical_dataset": {
             "file_name": snapshot_path.name,
             "sha256": dataset_sha,
@@ -164,8 +168,26 @@ def build_publication(
             "revision_report_sha256": revision_governance["revision_report_sha256"],
         },
         revision_governance_status=revision_governance["status"],
-        published_timestamp_utc=acquisition["full"]["retrieval_timestamp_utc"],
+        published_timestamp_utc=retrieval_timestamp,
         ttl_hours=int(contract["current_ttl_hours"]),
+    )
+
+    revision_bytes = revision_path.read_bytes()
+    attestation = build_connector_attestation(
+        repository=repository,
+        tag=tag,
+        dataset_bytes=dataset,
+        manifest_bytes=manifest_bytes,
+        revision_bytes=revision_bytes,
+        pointer=pointer,
+        producer_version=producer_version,
+    )
+    connector_meta = write_connector_tree(
+        output_dir=out,
+        attestation=attestation,
+        dataset_bytes=dataset,
+        manifest_bytes=manifest_bytes,
+        revision_bytes=revision_bytes,
     )
 
     site = out / "site" / "ciss" / "v1"
@@ -176,18 +198,25 @@ def build_publication(
 
     (out / "tag.txt").write_text(tag + "\n", encoding="utf-8")
     notes = (
-        f"Official ECB New CISS snapshot through {latest.isoformat()}.\n\n"
+        f"Official ECB New CISS connector snapshot through {latest.isoformat()}.\n\n"
+        f"Architecture: GITHUB_CONNECTOR_SNAPSHOT_V2\n"
         f"Dataset SHA-256: {dataset_sha}\n"
         f"Manifest SHA-256: {manifest_sha}\n"
+        f"Attestation SHA-256: {connector_meta['attestation_sha256']}\n"
         f"Revision governance: {revision_governance['status']}\n"
         f"Freshness: {release['freshness_status']}\n"
     )
     (out / "release_notes.md").write_text(notes, encoding="utf-8")
 
     summary = {
+        "architecture": "GITHUB_CONNECTOR_SNAPSHOT_V2",
         "tag": tag,
         "dataset_sha256": dataset_sha,
         "manifest_sha256": manifest_sha,
+        "attestation_sha256": connector_meta["attestation_sha256"],
+        "dataset_git_blob_sha": connector_meta["dataset_git_blob_sha"],
+        "manifest_git_blob_sha": connector_meta["manifest_git_blob_sha"],
+        "attestation_git_blob_sha": connector_meta["attestation_git_blob_sha"],
         "row_count": len(full),
         "first_observation": full[0].day.isoformat(),
         "last_observation": full[-1].day.isoformat(),
