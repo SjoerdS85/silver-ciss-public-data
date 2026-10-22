@@ -66,3 +66,21 @@ AUTOMATIC_CISS_ROUTE_VERIFIED=YES
 This closes the technical CISS automatic-consumer route gate.
 
 It does not itself authorize a GitHub production schedule, clear `RECALIBRATION_REQUIRED`, or reactivate either Silver monitor. Those remain separate Regie decisions.
+
+## Production schedule authorization
+
+Regie authorized scheduled production on 2026-10-22:
+
+```text
+CADENCE=DAILY
+LOCAL_TIME=19:17
+TIMEZONE=Europe/Amsterdam
+CRON=17 19 * * *
+TIMEZONE_AWARE=YES
+```
+
+The GitHub Actions schedule uses the IANA timezone directly, so the intended local wall-clock time remains 19:17 through CET/CEST changes.
+
+Scheduled runs are permitted to execute the same production path as manually confirmed runs: validated candidate build -> data-only snapshot commit -> immutable Release -> immutable-tag/read-back checks -> GitHub Pages deployment.
+
+This authorization does not reactivate the Silver Guardrail Watch or Silver Full Monitor and does not by itself clear `RECALIBRATION_REQUIRED`.
