@@ -21,10 +21,24 @@ It replaces only the external AWS/S3 publication layer that was previously propo
 - Release calendar and freshness audit: PASS.
 - Failure-injection tests: active.
 - Main branch ruleset: active; PR plus test status check required.
-- GitHub release immutability: required before first publication and not yet operationally verified.
-- GitHub Pages: required before first publication and not yet operationally verified.
-- Scheduled production: disabled.
+- GitHub release immutability: VERIFIED on real release.
+- GitHub Pages: VERIFIED on real deployment and independent public read-back.
+- Public Pages dataset and immutable Release dataset: byte-identical.
+- Production route: VERIFIED.
+- Scheduled production: disabled pending Regie go-live.
+- ChatGPT Scheduled Task consumer route: not yet verified.
 - Silver monitor reactivation: outside this repository and requires separate Regie approval.
+
+## Verified publication
+
+First validated publication:
+- release tag: ciss-20261020-01a9f9279038
+- dataset SHA-256: 01a9f927903828677dbd8349f92c9aebc43922022a3537bfc21ec5f2e529aff1
+- manifest SHA-256: 41fcf0adc4f349140059cbf292854d9e632018fe07002a93c97025d06f115cbb
+- revision report SHA-256: 08b533af543b5d586bf6830f20d26f9d8620665994e946cfe3add2b8bda91935
+- canonical rows: 12,217
+- first observation: 1980-01-03
+- last observation: 2026-10-20
 
 ## Free production architecture
 
@@ -37,25 +51,13 @@ Official ECB CISS
 
 No AWS credentials, long-lived cloud credentials, private project data or secrets belong in this repository.
 
-## Repository layout
+## Remaining activation gates
 
-- config/ — frozen source, revision and release contracts
-- src/ — acquisition, validation, reconciliation, stress and publication helpers
-- tests/ — deterministic contract, failure and publication tests
-- baseline/ — controlled accepted DB31 model vintage
-- docs/ — architecture, operations and security notes
-- .github/workflows/ — CI and gated audit/publication workflows
-- public/ — reserved publication documentation
+Before automatic production and monitor reactivation:
+1. Regie production go-live decision;
+2. add the scheduled production trigger only after that decision;
+3. run a ChatGPT Scheduled Task consumer probe against the public read-only route;
+4. verify the task can materialize current.json, immutable manifest and dataset and validate hashes;
+5. only then assess CISS automation and monitor reactivation.
 
-## Remaining production gates
-
-Before scheduled publication is enabled, Regie still requires:
-1. immutable releases enabled and verified on a real future release;
-2. GitHub Pages configured for GitHub Actions;
-3. one manual end-to-end publication run;
-4. external read-back of Pages and immutable Release assets;
-5. independent hash verification;
-6. separate production go/no-go;
-7. only then a scheduled production trigger and future task probe.
-
-Until those gates pass, scheduled production remains disabled and fail-closed.
+Until then, scheduled production remains disabled and fail-closed.

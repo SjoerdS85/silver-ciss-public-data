@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.2",
+  "schema_version": "1.3",
   "source": "ECB_OFFICIAL",
   "series_key": "CISS.D.U2.Z0Z.4F.EC.SS_CIN.IDX",
   "dataflow": "CISS",
@@ -66,10 +66,13 @@
     "current_backend": "GITHUB_PAGES",
     "release_tag_prefix": "ciss-",
     "release_immutability_required": true,
-    "release_immutability_status": "UNVERIFIED_REQUIRED_BEFORE_PRODUCTION",
-    "pages_status": "NOT_ENABLED",
-    "public_prefix": "public/ciss/v1",
-    "current_dataset_key": "public/ciss/v1/ciss_current.csv",
-    "current_manifest_key": "public/ciss/v1/ciss_current_manifest.json"
+    "release_immutability_status": "VERIFIED_ON_REAL_RELEASE_2026-10-22",
+    "pages_status": "VERIFIED_PUBLIC_READBACK_2026-10-22",
+    "production_route_status": "VERIFIED",
+    "scheduled_production_status": "DISABLED_PENDING_REGIE_GO_LIVE",
+    "automatic_task_consumer_status": "UNVERIFIED",
+    "public_base_url": "https://sjoerds85.github.io/silver-ciss-public-data/ciss/v1",
+    "current_dataset_key": "ciss/v1/ciss_current.csv",
+    "current_manifest_key": "ciss/v1/ciss_current_manifest.json"
   }
 }
