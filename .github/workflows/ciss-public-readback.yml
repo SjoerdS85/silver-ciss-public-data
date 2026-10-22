@@ -1,0 +1,38 @@
+name: CISS Public Readback Audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/public_readback.py"
+      - "tests/test_public_readback.py"
+      - ".github/workflows/ciss-public-readback.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-readback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+
+      - name: Read back public Pages and immutable Release
+        run: python -m src.public_readback --output artifacts/readback/public_readback.json
+
+      - name: Upload read-back evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ciss-public-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/readback
+          if-no-files-found: error
+          retention-days: 14
