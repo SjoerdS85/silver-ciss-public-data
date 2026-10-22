@@ -1,6 +1,9 @@
 name: CISS Publication
 
 on:
+  schedule:
+    - cron: "17 19 * * *"
+      timezone: "Europe/Amsterdam"
   pull_request:
     branches: [main]
     paths:
@@ -54,9 +57,10 @@ jobs:
 
   release:
     if: >-
-      github.event_name == 'workflow_dispatch' &&
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
       inputs.confirm_release_immutability_enabled == true &&
-      inputs.confirm_pages_actions_enabled == true
+      inputs.confirm_pages_actions_enabled == true)
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -191,9 +195,10 @@ jobs:
 
   pages:
     if: >-
-      github.event_name == 'workflow_dispatch' &&
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
       inputs.confirm_release_immutability_enabled == true &&
-      inputs.confirm_pages_actions_enabled == true
+      inputs.confirm_pages_actions_enabled == true)
     needs: [build, release]
     runs-on: ubuntu-latest
     permissions:
