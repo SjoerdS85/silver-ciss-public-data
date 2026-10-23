@@ -1,5 +1,32 @@
 {
   "events": {
+    "G73B_SYNTHETIC_ONLY:d86755f8502e50aa17d0cc4c0d149bdaf7a6475408e06552238081a41e49ef05": {
+      "base_blob_sha": "f602bad53300e3136477e626a2e15d2acdea9aa6",
+      "base_commit": "ea5aad033e7f6a117aeb4b88ae813abd3117d40b",
+      "event_fingerprint": "d86755f8502e50aa17d0cc4c0d149bdaf7a6475408e06552238081a41e49ef05",
+      "generation_after": 3,
+      "generation_before": 2,
+      "identity": {
+        "case": "REPEATED_EVENT_001",
+        "event_code": "SYNTHETIC_SOURCE_FAILURE",
+        "model": "v0.2",
+        "namespace": "G73B_SYNTHETIC_ONLY",
+        "schema": "G73B_EVENT_V1",
+        "series": "CISS.D.U2.Z0Z.4F.EC.SS_CIN.IDX",
+        "severity": "TEST_ONLY",
+        "vintage": "2026-09-12"
+      },
+      "namespace": "G73B_SYNTHETIC_ONLY",
+      "notification_acknowledged": "UNKNOWN",
+      "notification_delivered": "UNKNOWN",
+      "notification_eligible": true,
+      "notification_requested": false,
+      "observation": "SYNTHETIC_EVENT_RECORDED_NO_NOTIFICATION",
+      "observed_at_utc": "2026-10-23T14:49:59.029064+00:00",
+      "probe_a_started_at": "2026-10-23T14:49:02.208238Z",
+      "probe_a_task_run_id": "0268d518-2c24-832b-beac-c909315c85f8",
+      "test_only": true
+    },
     "SYNTHETIC_G73A_EVENT": {
       "local_test_observation": "UPDATE_READBACK_ONLY",
       "notification_acknowledged": "UNKNOWN",
@@ -9,7 +36,7 @@
       "test_only": true
     }
   },
-  "generation": 2,
+  "generation": 3,
   "requests": {},
   "schema": "GUARDRAIL_LEDGER_V1"
 }
