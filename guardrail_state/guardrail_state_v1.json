@@ -1,0 +1,14 @@
+{
+  "events": {
+    "SYNTHETIC_G73A_EVENT": {
+      "notification_acknowledged": "UNKNOWN",
+      "notification_delivered": "UNKNOWN",
+      "notification_eligible": false,
+      "notification_requested": false,
+      "test_only": true
+    }
+  },
+  "generation": 1,
+  "requests": {},
+  "schema": "GUARDRAIL_LEDGER_V1"
+}
