@@ -1,6 +1,7 @@
 {
   "events": {
     "SYNTHETIC_G73A_EVENT": {
+      "local_test_observation": "UPDATE_READBACK_ONLY",
       "notification_acknowledged": "UNKNOWN",
       "notification_delivered": "UNKNOWN",
       "notification_eligible": false,
@@ -8,7 +9,7 @@
       "test_only": true
     }
   },
-  "generation": 1,
+  "generation": 2,
   "requests": {},
   "schema": "GUARDRAIL_LEDGER_V1"
 }
